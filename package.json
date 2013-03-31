@@ -1,0 +1,8 @@
+{
+    "name": "nodewebmachine"
+  , "version": "0.0.1"
+  , "private": true
+  , "dependencies": {
+      "routes": ">= 0.1.1"
+  }
+}
