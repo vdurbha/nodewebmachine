@@ -14,6 +14,10 @@ var defaultresource = function(req, res) {
 		redirect: false,
 		newpath: "",
 		location: "",
+		etag: undefined,
+		incomingContentType: undefined,
+		lastModified: undefined,
+		expires: undefined,
 
 		serviceAvailable: function(){
 			return false;
@@ -73,8 +77,20 @@ var defaultresource = function(req, res) {
 			return false
 		},
 
+		options: function() {
+			this.headers["Allow"] = this.allowedMethods().join(",")
+		},
+
+		variances: function() {
+			return []
+		},
+
 		contentTypesProvided: function() {
 			return ["*/*"]
+		},
+
+		contentTypesAccepted: function() {
+			return []
 		},
 
 		languagesProvided: function() {
@@ -127,6 +143,18 @@ var defaultresource = function(req, res) {
 
 		multipleChoices: function(){
 			return false
+		},
+		
+		generateEtag: function(){
+			return
+		},
+
+		lastModified: function(){
+			return this.lastModified
+		},
+
+		expires: function() {
+			return this.expiry
 		},
 
 		to_html: function(){
@@ -249,6 +277,7 @@ var defaultresource = function(req, res) {
 
 		b3Action: function() {
 			if (this.request.method === "OPTIONS"){
+				this.options()
 				return true
 			} else {
 				return false
@@ -265,7 +294,12 @@ var defaultresource = function(req, res) {
 
 		c4Action: function() {
 			var acceptHeader = this.request.headers["accept"]
-			if(mimeparse.bestMatch(this.contentTypesProvided(), acceptHeader).length > 0) {
+			var contentTypesArray = []
+			for(var contentType in this.contentTypesProvided()) {
+				contentTypesArray.push(Object.keys(this.contentTypesProvided()[contentType]).toString())
+			}
+			if(mimeparse.bestMatch(contentTypesArray, acceptHeader).length > 0) {
+				incomingContentType = mimeparse.bestMatch(contentTypesArray, acceptHeader)
 				return true
 			} else {
 				return false
@@ -324,6 +358,9 @@ var defaultresource = function(req, res) {
 		},
 
 		g7Action: function() {
+			if(this.variances().length > 0) {
+				this.headers["Vary"] = this.variances().join(",")
+			}
 			if(this.resourceExists()) {
 				return true
 			} else {
@@ -348,7 +385,10 @@ var defaultresource = function(req, res) {
 		},
 
 		g11Action: function() {
-			if(this.request.headers["if-match"].length > 0) {
+			var ifMatchHeader = this.request.headers["if-match"]
+			var ifMatchHeaderArray = ifMatchHeader.split(",")
+			this.generateEtag()
+			if(ifMatchHeaderArray.indexOf(etag) >= 0){
 				return true
 			} else {
 				return false
@@ -455,7 +495,12 @@ var defaultresource = function(req, res) {
 		},
 
 		k13Action: function() {
-			if(this.request.headers["if-none-match"].length > 0) {
+			var ifNoneMatchHeader = this.request.headers["if-none-match"]
+			var ifNoneMatchHeaderArray = ifNoneMatchHeader.split(",")
+			if(!this.etag){
+				this.generateEtag()
+			}
+			if(ifNoneMatchHeaderArray.indexOf(etag) >= 0){
 				return true
 			} else {
 				return false
@@ -622,6 +667,23 @@ var defaultresource = function(req, res) {
 		},
 
 		o18Action: function() {
+			if(this.request.method === "GET" || this.request.method === "HEAD"){
+				if(!this.etag) {
+					this.generateEtag()
+				}
+				if(this.lastModified()){
+					this.headers["last-modified"] = new Date().toString()
+				}
+				if(this.expires()){
+					this.headers["expiry"] = new Date(this.expires()).toString()
+				}
+				for(var i in this.contentTypesProvided()) {
+					var contentType = this.contentTypesProvided()[i]
+					if(contentType[incomingContentType]) {
+						this[contentType[incomingContentType]]()
+					}
+				}
+			}
 			if(this.multipleChoices()) {
 				return true
 			} else {
@@ -721,7 +783,18 @@ var defaultresource = function(req, res) {
 		},
 
 		acceptHelper: function(){
-
+			var contentTypeHeader = this.request.headers["content-type"]
+			var contentTypeHandler = undefined
+			if(!contentTypeHeader){
+				contentTypeHeader = "application/octet-stream"
+				this.headers["content-type"] = "application/octet-stream"
+			}
+			for(var contentType in this.contentTypesAccepted()) {
+				if(contentType[contentTypeHeader]){
+					contentTypeHandler = contentType[contentTypeHeader]
+				}
+			}
+			this[contentTypeHandler]()
 		},
 
 		executeProcess: function(){

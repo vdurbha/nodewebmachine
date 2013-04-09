@@ -12,20 +12,24 @@ var helloworldresource = function(req, res) {
 		return true
 	}
 
+	that.contentTypesAccepted = function() {
+		return [{"application/x-www-form-urlencoded": "post"},
+					 {"application/octet-stream": "post"}]
+	}
+
 	that.contentTypesProvided = function() {
-		return ["application/collection+json"]
-	}
+		return [{"text/html": "to_html"},
+					 {"*/*": "to_html"}]
 
-	that.languagesProvided = function() {
-		return ["*/*"]
-	}
-
-	that.charsetsProvided = function() {
-		return ["*/*"]
 	}
 
 	that.to_html = function(){
-		that.response.end("Hello world\n")
+		console.log("Inside to_html")
+		that.body = "Hello world\n"
+	}
+
+	that.post = function() {
+		console.log("Post successful")
 	}
 
 	return that;
