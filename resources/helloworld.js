@@ -17,12 +17,6 @@ var helloworldresource = function(req, res) {
 					 {"application/octet-stream": "post"}]
 	}
 
-	that.contentTypesProvided = function() {
-		return [{"text/html": "to_html"},
-					 {"*/*": "to_html"}]
-
-	}
-
 	that.to_html = function(){
 		console.log("Inside to_html")
 		that.body = "Hello world\n"

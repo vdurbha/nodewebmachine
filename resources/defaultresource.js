@@ -86,7 +86,7 @@ var defaultresource = function(req, res) {
 		},
 
 		contentTypesProvided: function() {
-			return ["*/*"]
+			return [{"text/html": "to_html"}]
 		},
 
 		contentTypesAccepted: function() {
